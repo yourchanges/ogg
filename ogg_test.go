@@ -35,8 +35,7 @@ func checkpacket(op *Packet, length int, no int, pos int64) {
 		os.Exit(1)
 	}
 
-	/* packet number just follows sequence/gap; adjust the input number
-	   for that */
+	// packet number just follows sequence/gap; adjust the input number for that
 	if no == 0 {
 		sequence = 0
 	} else {
@@ -73,6 +72,7 @@ func check_page(data []byte, header []byte, page *Page) {
 	}
 
 	/* Test header */
+// fmt.Printf("len page.Header	= %d, len header = %d, header[26] = %d\n", len(page.Header), len(header), header[26])
 	for j := range page.Header {
 		if page.Header[j] != header[j] {
 			fmt.Fprintf(os.Stderr, "header content mismatch at pos %d:\n", j)
@@ -535,22 +535,21 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 			if buf == nil {
 				log.Fatal("buffer is nil\n")
 			}
-			next := buf
+			var offset int
 			byteskipcount += len(page.Header)
 			if byteskipcount > int(byteskip) {
-				copy(next, page.Header[0:byteskipcount-byteskip])
-				next = next[byteskipcount-byteskip:]
+				copy(buf, page.Header[0:byteskipcount-byteskip])
+				offset += byteskipcount-byteskip
 				byteskipcount = byteskip
 			}
 
 			byteskipcount += len(page.Body)
 			if byteskipcount > byteskip {
-				copy(next, page.Body[0:byteskipcount-byteskip])
-				next = next[byteskipcount-byteskip:]
+				copy(buf[offset:], page.Body[0:byteskipcount-byteskip])
+				offset += (byteskipcount-byteskip)
 				byteskipcount = byteskip
 			}
 
-			offset := int(ptr(&next[0]) - ptr(&buf[0]))
 			if syncState.Wrote(offset) == -1 {
 				log.Fatal("func Wrote returned -1")
 			}
@@ -654,11 +653,11 @@ func TestFraming(t *testing.T) {
 	streamStateEnc.Init(0x04030201)
 	streamStateDecr.Init(0x04030201)
 
-	/* Exercise each code path in the framing code.  Also verify that
-	   the checksums are working.  */
+	// Exercise each code path in the framing code.  Also verify that
+	// the checksums are working.
 
 	{
-		/* 17 only */
+		// 17 only 
 		var packets = []int32{17, -1}
 		var headret = [][]byte{head1_0, nil}
 
@@ -667,7 +666,7 @@ func TestFraming(t *testing.T) {
 	}
 
 	{
-		/* 17, 254, 255, 256, 500, 510, 600 byte, pad */
+		// 17, 254, 255, 256, 500, 510, 600 byte, pad 
 		var packets = []int32{17, 254, 255, 256, 500, 510, 600, -1}
 		var headret = [][]byte{head1_1, head2_1, nil}
 
@@ -676,7 +675,7 @@ func TestFraming(t *testing.T) {
 	}
 
 	{
-		/* nil packets; beginning,middle,end */
+		// nil packets; beginning,middle,end 
 		var packets = []int32{0, 17, 254, 255, 0, 256, 0, 500, 510, 600, 0, -1}
 		var headret = [][]byte{head1_2, head2_2, nil}
 
@@ -685,7 +684,7 @@ func TestFraming(t *testing.T) {
 	}
 
 	{
-		/* large initial packet */
+		// large initial packet 
 		var packets = []int32{4345, 259, 255, -1}
 		var headret = [][]byte{head1_3, head2_3, nil}
 
@@ -696,16 +695,15 @@ func TestFraming(t *testing.T) {
 	{
 		// continuing packet test; with page spill expansion, we have to
 		// overflow the lacing table. 
-		/*		var packets = []int32{0, 65500, 259, 255, -1}
-				var headret = [][]byte{head1_4, head2_4, head3_4, nil}
+		var packets = []int32{0, 65500, 259, 255, -1}
+		var headret = [][]byte{head1_4, head2_4, head3_4, nil}
 
-				fmt.Fprintf(os.Stderr, "testing single packet page span... ")
-				test_pack(packets, headret, 0, 0, 0)
-		*/
+		fmt.Fprintf(os.Stderr, "testing single packet page span... ")
+		test_pack(packets, headret, 0, 0, 0)
 	}
 
 	{
-		/* spill expand packet test */
+		// spill expand packet test
 		var packets = []int32{0, 4345, 259, 255, 0, 0, -1}
 		var headret = [][]byte{head1_4b, head2_4b, head3_4b, nil}
 
@@ -713,10 +711,10 @@ func TestFraming(t *testing.T) {
 		test_pack(packets, headret, 0, 0, 0)
 	}
 
-	/* page with the 255 segment limit */
+	// page with the 255 segment limit 
 	{
-
-		var packets = []int32{0, 10, 10, 10, 10, 10, 10, 10, 10,
+		var packets = []int32 { 0, 
+			10, 10, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10,
@@ -756,37 +754,34 @@ func TestFraming(t *testing.T) {
 
 	{
 		// packet that overspans over an entire page
-		/*		var packets = []int32{0, 100, 130049, 259, 255, -1}
-				var headret = [][]byte{head1_6, head2_6, head3_6, head4_6, nil}
+		var packets = []int32{0, 100, 130049, 259, 255, -1}
+		var headret = [][]byte{head1_6, head2_6, head3_6, head4_6, nil}
 
-				fmt.Fprintf(os.Stderr, "testing very large packets... ")
-				test_pack(packets, headret, 0, 0, 0)
-		*/
+		fmt.Fprintf(os.Stderr, "testing very large packets... ")
+		test_pack(packets, headret, 0, 0, 0)
+	}
+/*
+	{
+		// test for the libogg 1.1.1 resync in large continuation bug
+		// found by Josh Coalson)
+		var packets = []int32{0, 100, 130049, 259, 255, -1}
+		var headret = [][]byte{head1_6, head2_6, head3_6, head4_6, nil}
+
+		fmt.Fprintf(os.Stderr, "testing continuation resync in very large packets... ")
+		test_pack(packets, headret, 100, 2, 3)
+	}
+*/
+	{
+		// term only page.  why not?
+		var packets = []int32{0, 100, 64770, -1}
+		var headret = [][]byte{head1_7, head2_7, head3_7, nil}
+
+		fmt.Fprintf(os.Stderr, "testing zero data page (1 nil packet)... ")
+		test_pack(packets, headret, 0, 0, 0)
 	}
 
 	{
-		/*		// test for the libogg 1.1.1 resync in large continuation bug
-				// found by Josh Coalson)
-				var packets = []int32{0, 100, 130049, 259, 255, -1}
-				var headret = [][]byte{head1_6, head2_6, head3_6, head4_6, nil}
-
-				fmt.Fprintf(os.Stderr, "testing continuation resync in very large packets... ")
-				test_pack(packets, headret, 100, 2, 3)
-		*/
-	}
-
-	{
-		/*		// term only page.  why not?
-				var packets = []int32{0, 100, 64770, -1}
-				var headret = [][]byte{head1_7, head2_7, head3_7, nil}
-
-				fmt.Fprintf(os.Stderr, "testing zero data page (1 nil packet)... ")
-				test_pack(packets, headret, 0, 0, 0)
-		*/
-	}
-
-	{
-		/* build a bunch of pages for testing */
+		// build a bunch of pages for testing
 		data := make([]byte, 1024*1024)
 		pl := []int32{0, 1, 1, 98, 4079, 1, 1, 2954, 2057, 76, 34, 912, 0, 234, 1000, 1000, 1000, 300, -1}
 		var inptr, i int32
@@ -814,7 +809,7 @@ func TestFraming(t *testing.T) {
 
 		data = nil
 
-		/* retrieve finished pages */
+		// retrieve finished pages 
 		for i = 0; i < 5; i++ {
 			if streamStateEnc.PageOut(&page[i]) == 0 {
 				fmt.Fprintf(os.Stderr, "Too few pages output building sync tests!\n")
@@ -823,7 +818,7 @@ func TestFraming(t *testing.T) {
 			copy_page(&page[i])
 		}
 
-		/* Test lost pages on pagein/packetout: no rollback */
+		// Test lost pages on pagein/packetout: no rollback 
 		{
 			var temp Page
 			var test Packet
@@ -844,11 +839,11 @@ func TestFraming(t *testing.T) {
 			syncState.PageOut(&temp)
 			streamStateDecr.PageIn(&temp)
 			syncState.PageOut(&temp)
-			/* skip */
+			// skip 
 			syncState.PageOut(&temp)
 			streamStateDecr.PageIn(&temp)
 
-			/* do we get the expected results/packets? */
+			// do we get the expected results/packets? 
 
 			if streamStateDecr.PacketOut(&test) != 1 {
 				Error()
@@ -885,7 +880,7 @@ func TestFraming(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "ok.\n")
 		}
 
-		/* Test lost pages on pagein/packetout: rollback with continuation */
+		// Test lost pages on pagein/packetout: rollback with continuation 
 		{
 			var temp Page
 			var test Packet
@@ -908,11 +903,11 @@ func TestFraming(t *testing.T) {
 			syncState.PageOut(&temp)
 			streamStateDecr.PageIn(&temp)
 			syncState.PageOut(&temp)
-			/* skip */
+			// skip 
 			syncState.PageOut(&temp)
 			streamStateDecr.PageIn(&temp)
 
-			/* do we get the expected results/packets? */
+			// do we get the expected results/packets? 
 
 			if streamStateDecr.PacketOut(&test) != 1 {
 				Error()
@@ -961,10 +956,10 @@ func TestFraming(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "ok.\n")
 		}
 
-		/* the rest only test sync */
+		// the rest only test sync
 		{
 			var pageDec Page
-			/* Test fractional page inputs: incomplete capture */
+			// Test fractional page inputs: incomplete capture 
 			fmt.Fprintf(os.Stderr, "Testing sync on partial inputs... ")
 			syncState.Reset()
 			copy(syncState.Buffer(len(page[1].Header)), page[1].Header[0:3])
@@ -973,21 +968,21 @@ func TestFraming(t *testing.T) {
 				Error()
 			}
 
-			/* Test fractional page inputs: incomplete fixed header */
+			// Test fractional page inputs: incomplete fixed header 
 			copy(syncState.Buffer(len(page[1].Header)), page[1].Header[3:3+20])
 			syncState.Wrote(20)
 			if syncState.PageOut(&pageDec) > 0 {
 				Error()
 			}
 
-			/* Test fractional page inputs: incomplete header */
+			// Test fractional page inputs: incomplete header 
 			copy(syncState.Buffer(len(page[1].Header)), page[1].Header[23:23+5])
 			syncState.Wrote(5)
 			if syncState.PageOut(&pageDec) > 0 {
 				Error()
 			}
 
-			/* Test fractional page inputs: incomplete body */
+			// Test fractional page inputs: incomplete body 
 
 			copy(syncState.Buffer(len(page[1].Header)), page[1].Header[28:])
 			syncState.Wrote(len(page[1].Header) - 28)
@@ -1010,7 +1005,7 @@ func TestFraming(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "ok.\n")
 		}
 
-		/* Test fractional page inputs: page + incomplete capture */
+		// Test fractional page inputs: page + incomplete capture 
 		{
 			var pageDec Page
 			fmt.Fprintf(os.Stderr, "Testing sync on 1+partial inputs... ")
@@ -1042,13 +1037,13 @@ func TestFraming(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "ok.\n")
 		}
 
-		/* Test recapture: garbage + page */
+		// Test recapture: garbage + page 
 		{
 			var pageDec Page
 			fmt.Fprintf(os.Stderr, "Testing search for capture... ")
 			syncState.Reset()
 
-			/* 'garbage' */
+			// 'garbage' 
 			copy(syncState.Buffer(len(page[1].Body)), page[1].Body)
 			syncState.Wrote(len(page[1].Body))
 
@@ -1082,7 +1077,7 @@ func TestFraming(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "ok.\n")
 		}
 
-		/* Test recapture: page + garbage + page */
+		// Test recapture: page + garbage + page 
 		{
 			var pageDec Page
 			fmt.Fprintf(os.Stderr, "Testing recapture... ")
@@ -1123,7 +1118,7 @@ func TestFraming(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "ok.\n")
 		}
 
-		/* Free page data that was previously copied */
+		// Free page data that was previously copied 
 		for i = 0; i < 5; i++ {
 			free_page(&page[i])
 		}

@@ -79,9 +79,7 @@ func printf(s string, a ...interface{}) {
 	}
 }
 
-type iovec []byte
-
-/* A complete description of Ogg framing exists in docs/framing.html */
+// A complete description of Ogg framing exists in docs/framing.html 
 
 func (og *Page) Version() uint8 {
 	return og.Header[4]
@@ -92,11 +90,11 @@ func (og *Page) Continued() uint8 {
 }
 
 func (og *Page) Bos() bool {
-	return og.Header[5]&0x02 != 0
+	return og.Header[5] & 0x02 != 0
 }
 
 func (og *Page) Eos() bool {
-	return og.Header[5]&0x04 != 0
+	return og.Header[5] & 0x04 != 0
 }
 
 func (og *Page) GranulePos() int64 {
@@ -130,29 +128,27 @@ func (og *Page) PageNo() int32 {
 	return int32(Page_pageno)
 }
 
-/* returns the number of packets that are completed on this page (if
-   the leading packet is begun on a previous page, but ends on this
-   page, it's counted */
-
-/* NOTE:
-   If a page consists of a packet begun on a previous page, and a new
-   packet begun (but not completed) on this page, the return will be:
-     Page_packets(page)   ==1,
-     Page_continued(page) !=0
-
-   If a page happens to be a single packet that was begun on a
-   previous page, and spans to the next page (in the case of a three or
-   more page packet), the return will be:
-     Page_packets(page)   ==0,
-     Page_continued(page) !=0
-*/
-
+// returns the number of packets that are completed on this page (if
+// the leading packet is begun on a previous page, but ends on this
+// page, it's counted
+//
+// NOTE:
+// If a page consists of a packet begun on a previous page, and a new
+// packet begun (but not completed) on this page, the return will be:
+//   Page.Packets()   ==1,
+//   Page.Continued() !=0
+//
+// If a page happens to be a single packet that was begun on a
+// previous page, and spans to the next page (in the case of a three or
+// more page packet), the return will be:
+//   Page.Packets()   ==0,
+//   Page.Continued() !=0
+//
 func (og *Page) Packets() int {
 	var count int
-	var i, n byte
 
-	n = og.Header[26]
-	for i = 0; i < n; i++ {
+	n := int(og.Header[26])
+	for i := 0; i < n; i++ {
 		if og.Header[27+i] < 255 {
 			count++
 		}
@@ -292,15 +288,15 @@ func (og *Page) ChecksumSet() {
 			crc_reg = (crc_reg << 8) ^ crc_lookup[((crc_reg>>24)&0xff)^uint32(og.Body[i])]
 		}
 
-		og.Header[22] = byte(crc_reg & 0xff)
-		og.Header[23] = byte((crc_reg >> 8) & 0xff)
-		og.Header[24] = byte((crc_reg >> 16) & 0xff)
-		og.Header[25] = byte((crc_reg >> 24) & 0xff)
+		og.Header[22] = byte(crc_reg) & 0xff
+		og.Header[23] = byte(crc_reg >> 8) & 0xff
+		og.Header[24] = byte(crc_reg >> 16) & 0xff
+		og.Header[25] = byte(crc_reg >> 24) & 0xff
 	}
 }
 
 // IovecIn submit data to the internal buffer of the framing engine
-func (ot *StreamState) IovecIn(iov []iovec, count int, EOS int32, granulepos int64) error {
+func (ot *StreamState) IovecIn(iov [][]byte, count int, EOS int32, granulepos int64) error {
 	var Bytes, lacing_vals, i int
 
 	if ot.Check() == false {
@@ -368,7 +364,7 @@ func (ot *StreamState) IovecIn(iov []iovec, count int, EOS int32, granulepos int
 }
 
 func (ot *StreamState) PacketIn(op *Packet) error {
-	return ot.IovecIn([]iovec{op.Packet}, 1, op.EOS, op.GranulePos)
+	return ot.IovecIn([][]byte{op.Packet}, 1, op.EOS, op.GranulePos)
 }
 
 // Conditionally flush a page; force==0 will only flush nominal-size
@@ -464,7 +460,7 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 
 	/* 64 bits of PCM position */
 	for i = 6; i < 14; i++ {
-		ot.Header[i] = byte(granule_pos & 0xff)
+		ot.Header[i] = byte(granule_pos) & 0xff
 		granule_pos >>= 8
 	}
 
@@ -472,7 +468,7 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 
 	serialno := ot.SerialNo
 	for i = 14; i < 18; i++ {
-		ot.Header[i] = byte(serialno & 0xff)
+		ot.Header[i] = byte(serialno) & 0xff
 		serialno >>= 8
 	}
 
@@ -490,7 +486,7 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	ot.PageNo++
 
 	for i = 18; i < 22; i++ {
-		ot.Header[i] = byte(pageno & 0xff)
+		ot.Header[i] = byte(pageno) & 0xff
 		pageno >>= 8
 	}
 
@@ -501,9 +497,9 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	ot.Header[25] = 0
 
 	/* segment table */
-	ot.Header[26] = byte(vals & 0xff)
+	ot.Header[26] = byte(vals) & 0xff
 	for i = 0; i < vals; i++ {
-		ot.Header[i+27] = byte(ot.LacingVals[i] & 0xff)
+		ot.Header[i+27] = byte(ot.LacingVals[i]) & 0xff
 		bodyBytes += int32(ot.Header[i+27])
 	}
 
@@ -561,7 +557,7 @@ func (ot *StreamState) PageOut(og *Page) int {
 		return 0
 	}
 
-	if (ot.EOS && ot.LacingFill != 0) || // 'were done, now flush' case
+	if (ot.EOS && ot.LacingFill != 0) ||  // 'were done, now flush' case
 		(ot.LacingFill != 0 && !ot.BOS) { // 'initial header page' case 
 		force = true
 	}
@@ -653,7 +649,7 @@ func (oy *SyncState) Wrote(Bytes int) int {
 // boundaries.
 //
 // return values for this:
-// -n) skipped n_bytes
+//  -n) skipped n_bytes
 //  0) page not ready; more data (no_bytes skipped)
 //  n) page synced at current location; page length n_bytes
 //
@@ -680,7 +676,7 @@ func (oy *SyncState) PageSeek(og *Page) int32 {
 
 		// count up body length in the segment table
 
-		for j := byte(0); j < page[26]; j++ {
+		for j := 0; j < int(page[26]); j++ {
 			oy.BodyBytes += int32(page[27+j])
 		}
 		oy.HeaderBytes = int32(headerbytes)
@@ -755,7 +751,7 @@ sync_fail:
 // Suppress 'sync errors' after reporting the first.
 //
 // return values:
-// -1) recapture (hole in data)
+//  -1) recapture (hole in data)
 //  0) need more data
 //  1) page returned
 //
