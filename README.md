@@ -1,9 +1,10 @@
 # ogg
 
-Pure Go implementation of the ogg container format library. See [www.xiph.org/ogg] for more info about ogg.
+Pure [Go](http://www.golang.org) implementation of the libogg 1.3.0 container format library. See [www.xiph.org/ogg] for more info about libogg.
+
+Testing 100% pass.
 
 ### ToDo:
-- Testing 100%. Right now, only one test fails.
 - Check which funcs/types/vars needs to be visible outside the package
 - Commenting the funcs / types (godoc)
 - Goroutines?

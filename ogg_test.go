@@ -51,7 +51,7 @@ func checkpacket(op *Packet, length int, no int, pos int64) {
 		os.Exit(1)
 	}
 
-	/* Test data */
+	// Test data 
 	for j := range op.Packet {
 		if op.Packet[j] != (byte(j+no) & 0xff) {
 			fmt.Fprintf(os.Stderr, "body data mismatch (1) at pos %d: %x!=%x!\n\n",
@@ -62,7 +62,7 @@ func checkpacket(op *Packet, length int, no int, pos int64) {
 }
 
 func check_page(data []byte, header []byte, page *Page) {
-	/* Test data */
+	// Test data 
 	for j := range page.Body {
 		if page.Body[j] != data[j] {
 			fmt.Fprintf(os.Stderr, "body data mismatch (2) at pos %d: %x!=%x!\n\n",
@@ -71,8 +71,7 @@ func check_page(data []byte, header []byte, page *Page) {
 		}
 	}
 
-	/* Test header */
-// fmt.Printf("len page.Header	= %d, len header = %d, header[26] = %d\n", len(page.Header), len(header), header[26])
+	// Test header 
 	for j := range page.Header {
 		if page.Header[j] != header[j] {
 			fmt.Fprintf(os.Stderr, "header content mismatch at pos %d:\n", j)
@@ -135,14 +134,14 @@ func Error() {
 	os.Exit(1)
 }
 
-/* 17 only */
+// 17 only 
 var head1_0 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x06,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
 	0x15, 0xed, 0xec, 0x91,
 	1, 17}
 
-/* 17, 254, 255, 256, 500, 510, 600 byte, pad */
+// 17, 254, 255, 256, 500, 510, 600 byte, pad 
 var head1_1 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -156,7 +155,7 @@ var head2_1 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x04,
 	13, 254, 255, 0, 255, 1, 255, 245, 255, 255, 0,
 	255, 255, 90}
 
-/* nil packets; beginning,middle,end */
+// nil packets; beginning,middle,end 
 var head1_2 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -170,7 +169,7 @@ var head2_2 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x04,
 	17, 17, 254, 255, 0, 0, 255, 1, 0, 255, 245, 255, 255, 0,
 	255, 255, 90, 0}
 
-/* large initial packet */
+// large initial packet 
 var head1_3 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -184,7 +183,7 @@ var head2_3 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x04,
 	0x7f, 0x4e, 0x8a, 0xd2,
 	4, 255, 4, 255, 0}
 
-/* continuing packet test */
+// continuing packet test
 var head1_4 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -234,7 +233,7 @@ var head3_4 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x05,
 	0x38, 0xe6, 0xb6, 0x28,
 	6, 255, 220, 255, 4, 255, 0}
 
-/* spill expansion test */
+// spill expansion test 
 var head1_4b = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -254,7 +253,7 @@ var head3_4b = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x04,
 	0x9b, 0xb2, 0x50, 0xa1,
 	1, 0}
 
-/* page with the 255 segment limit */
+// page with the 255 segment limit 
 var head1_5 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -305,7 +304,7 @@ var head3_5 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x04,
 	0x6c, 0x3b, 0x82, 0x3d,
 	1, 50}
 
-/* packet that overspans over an entire page */
+// packet that overspans over an entire page 
 var head1_6 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -393,7 +392,7 @@ var head4_6 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x05,
 	0xf7, 0x2f, 0x6c, 0x60,
 	5, 254, 255, 4, 255, 0}
 
-/* packet that overspans over an entire page */
+// packet that overspans over an entire page 
 var head1_7 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x02,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x01, 0x02, 0x03, 0x04, 0, 0, 0, 0,
@@ -444,7 +443,7 @@ var head3_7 = []byte{0x4f, 0x67, 0x67, 0x53, 0, 0x05,
 	0xd4, 0xe0, 0x60, 0xe5,
 	1, 0}
 
-func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packetskip int32) {
+func test_pack(pl []int32, headers [][]byte, byteskip, pageskip, packetskip int) {
 	var (
 		data          = make([]byte, 1024*1024) // for scripted test cases only
 		inptr         int
@@ -453,7 +452,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 		depacket      int32
 		granule_pos   int64 = 7
 		pageno        int
-		i, packets    int32
+		packets       int
 		pageout       = pageskip
 		eosflag       bool
 		bosflag       bool
@@ -461,13 +460,8 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 		err           error
 	)
 
-	// TODO if constructions are for debugging only. They must be removed afterwards
-	if streamStateEnc.Reset() != 0 {
-		fmt.Println("streamStateEnc Reset function returned -1")
-	}
-	if streamStateDecr.Reset() != 0 {
-		fmt.Println("streamStateDecr Reset function returned -1")
-	}
+	streamStateEnc.Reset()
+	streamStateDecr.Reset()
 	syncState.Reset()
 
 	for packets = 0; packets < packetskip; packets++ {
@@ -480,9 +474,9 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 		}
 	}
 
-	for i = 0; i < packets; i++ {
-		/* construct a test packet */
-		var op Packet
+	for i := 0; i < packets; i++ {
+
+		var op Packet // construct a test packet
 		length := int(pl[i])
 
 		op.Packet = data[inptr : inptr+length]
@@ -500,16 +494,17 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 			inptr++
 		}
 
-		/* submit the test packet */
+		// submit the test packet 
 		if err = streamStateEnc.PacketIn(&op); err != nil {
 			fmt.Println("streamStateEnc PacketIn returned not null")
 		}
 
-		/* retrieve any finished pages */
+		// retrieve any finished pages 
 		var page Page
 
 		for streamStateEnc.PageOut(&page) != 0 {
-			/* We have a page.  Check it carefully */
+
+			// We have a page.  Check it carefully 
 
 			fmt.Fprintf(os.Stderr, "%d, ", pageno)
 
@@ -527,7 +522,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 				deptr += len(page.Body)
 			}
 
-			/* have a complete page; submit it to sync/decode */
+			// have a complete page; submit it to sync/decode 
 
 			var pageDec Page
 			var packetDec, packetDec2 Packet
@@ -539,14 +534,14 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 			byteskipcount += len(page.Header)
 			if byteskipcount > int(byteskip) {
 				copy(buf, page.Header[0:byteskipcount-byteskip])
-				offset += byteskipcount-byteskip
+				offset += byteskipcount - byteskip
 				byteskipcount = byteskip
 			}
 
 			byteskipcount += len(page.Body)
 			if byteskipcount > byteskip {
 				copy(buf[offset:], page.Body[0:byteskipcount-byteskip])
-				offset += (byteskipcount-byteskip)
+				offset += (byteskipcount - byteskip)
 				byteskipcount = byteskip
 			}
 
@@ -562,7 +557,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 				if ret < 0 {
 					continue
 				}
-				/* got a page.  Happy happy.  Verify that it's good. */
+				// got a page.  Happy happy.  Verify that it's good. 
 
 				fmt.Fprintf(os.Stderr, "(%d)", pageout)
 
@@ -570,31 +565,31 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 				deptr += len(pageDec.Body)
 				pageout++
 
-				/* submit it to deconstitution */
+				// submit it to deconstitution 
 				if err = streamStateDecr.PageIn(&pageDec); err != nil {
 					log.Fatal(err)
 				}
 
-				/* packets out? */
+				// packets out? 
 				for streamStateDecr.PacketPeek(&packetDec2) > 0 {
 
 					streamStateDecr.PacketPeek(nil)
-					streamStateDecr.PacketOut(&packetDec) /* just catching them all */
-					/* verify peek and out match */
+					streamStateDecr.PacketOut(&packetDec) // just catching them all 
+					// verify peek and out match 
 					if reflect.DeepEqual(packetDec, packetDec2) == false {
 						fmt.Fprintf(os.Stderr, "packetout != packetpeek! pos=%d\n",
 							depacket)
 						os.Exit(1)
 					}
 
-					/* verify the packet! */
-					/* check data */
+					// verify the packet! 
+					// check data 
 					if bytes.Equal(data[depacket:depacket+int32(len(packetDec.Packet))], packetDec.Packet) == false {
 						fmt.Fprintf(os.Stderr, "packet data mismatch in decode! pos=%d\n",
 							depacket)
 						os.Exit(1)
 					}
-					/* check bos flag */
+					// check bos flag 
 					if bosflag == false && packetDec.BOS == 0 {
 						fmt.Fprintf(os.Stderr, "b_o_s flag not set on packet!\n")
 						os.Exit(1)
@@ -606,7 +601,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 					bosflag = true
 					depacket += int32(len(packetDec.Packet))
 
-					/* check eos flag */
+					// check eos flag 
 					if eosflag {
 						fmt.Fprintf(os.Stderr, "Multiple decoded packets with eos flag!\n")
 						os.Exit(1)
@@ -616,7 +611,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip int, pageskip int, packets
 						eosflag = true
 					}
 
-					/* check granulepos flag */
+					// check granulepos flag 
 					if packetDec.GranulePos != -1 {
 						fmt.Fprintf(os.Stderr, " granule:%d ", packetDec.GranulePos)
 					}
@@ -713,7 +708,7 @@ func TestFraming(t *testing.T) {
 
 	// page with the 255 segment limit 
 	{
-		var packets = []int32 { 0, 
+		var packets = []int32{0,
 			10, 10, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10,
@@ -760,7 +755,7 @@ func TestFraming(t *testing.T) {
 		fmt.Fprintf(os.Stderr, "testing very large packets... ")
 		test_pack(packets, headret, 0, 0, 0)
 	}
-/*
+
 	{
 		// test for the libogg 1.1.1 resync in large continuation bug
 		// found by Josh Coalson)
@@ -770,7 +765,7 @@ func TestFraming(t *testing.T) {
 		fmt.Fprintf(os.Stderr, "testing continuation resync in very large packets... ")
 		test_pack(packets, headret, 100, 2, 3)
 	}
-*/
+
 	{
 		// term only page.  why not?
 		var packets = []int32{0, 100, 64770, -1}
