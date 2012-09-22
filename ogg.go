@@ -351,7 +351,7 @@ func (ot *StreamState) PacketIn(op *Packet) error {
 // Conditionally flush a page; force == false will only flush nominal size
 // pages, force == true forces us to flush a page regardless of page size
 // as long as there's any data available at all.
-func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
+func (ot *StreamState) flushI(og *Page, force bool, nfill int) bool {
 	var bodyBytes int32
 	var i, acc, vals, maxvals int32
 	var granule_pos int64 = -1
@@ -363,10 +363,10 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	}
 
 	if ot.Check() == false {
-		return 0
+		return false
 	}
 	if maxvals == 0 {
-		return 0
+		return false
 	}
 
 	// construct a page 
@@ -415,7 +415,7 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	}
 
 	if force == false {
-		return 0
+		return false
 	}
 
 	// construct the header in temp storage 
@@ -497,7 +497,7 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	og.ChecksumSet()
 
 	// done 
-	return 1
+	return true
 }
 
 // Flush will flush remaining packets into a page (returning nonzero),
@@ -513,25 +513,25 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 // it's undersized, you almost certainly want to use PageOut
 // (and *not* Flush) unless you specifically need to flush
 // a page regardless of size in the middle of a stream.
-func (ot *StreamState) Flush(og *Page) int {
+func (ot *StreamState) Flush(og *Page) bool {
 	return ot.flushI(og, true, 4096)
 }
 
 // FlushFill, like Flush, but an argument is provided to adjust the nominal
 // page size for applications which are smart enough to provide their
 // own delay based flushing
-func (ot *StreamState) FlushFill(og *Page, nfill int) int {
+func (ot *StreamState) FlushFill(og *Page, nfill int) bool {
 	return ot.flushI(og, true, nfill)
 }
 
 // PageOut constructs pages from buffered packet segments.  The pointers
 // returned are to static buffers; do not free. The returned buffers are
 // good only until the next call (using the same StreamState).
-func (ot *StreamState) PageOut(og *Page) int {
+func (ot *StreamState) PageOut(og *Page) bool {
 	var force bool
 
 	if ot.Check() == false {
-		return 0
+		return false
 	}
 
 	if (ot.EOS && ot.LacingFill != 0) || // 'were done, now flush' case
@@ -545,10 +545,10 @@ func (ot *StreamState) PageOut(og *Page) int {
 // PageOutFill, like PageOut, but an argument is provided to adjust the nominal
 // page size for applications which are smart enough to provide their
 // own delay based flushing.
-func (ot *StreamState) PageOutFill(og *Page, nfill int) int {
+func (ot *StreamState) PageOutFill(og *Page, nfill int) bool {
 	var force bool
 	if ot.Check() == false {
-		return 0
+		return false
 	}
 
 	if (ot.EOS && ot.LacingFill == 1) || // 'were done, now flush' case 

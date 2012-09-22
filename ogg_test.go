@@ -498,7 +498,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip, pageskip, packetskip int)
 		// retrieve any finished pages 
 		var page Page
 
-		for streamStateEnc.PageOut(&page) != 0 {
+		for streamStateEnc.PageOut(&page) == true {
 
 			// We have a page.  Check it carefully 
 
@@ -802,7 +802,7 @@ func TestFraming(t *testing.T) {
 
 		// retrieve finished pages 
 		for i = 0; i < 5; i++ {
-			if streamStateEnc.PageOut(&page[i]) == 0 {
+			if streamStateEnc.PageOut(&page[i]) == false {
 				fmt.Fprintf(os.Stderr, "Too few pages output building sync tests!\n")
 				os.Exit(1)
 			}
