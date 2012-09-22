@@ -8,7 +8,5 @@ Testing 100% pass.
 - Check which funcs/types/vars needs to be visible outside the package
 - Commenting the funcs / types (godoc)
 - Goroutines?
-- Take a look at the license stuff
-- Send a mail to Xiph.org ?
 - Vorbis also. But this will be cgo.
 
