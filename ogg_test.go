@@ -477,9 +477,9 @@ func test_pack(pl []int32, headers [][]byte, byteskip, pageskip, packetskip int)
 
 		op.Packet = data[inptr : inptr+length]
 		if pl[i+1] < 0 {
-			op.EOS = 1
+			op.EOS = true
 		} else {
-			op.EOS = 0
+			op.EOS = false
 		}
 		op.GranulePos = granule_pos
 
@@ -586,12 +586,12 @@ func test_pack(pl []int32, headers [][]byte, byteskip, pageskip, packetskip int)
 						os.Exit(1)
 					}
 					// check bos flag 
-					if bosflag == false && packetDec.BOS == 0 {
-						fmt.Fprintf(os.Stderr, "b_o_s flag not set on packet!\n")
+					if bosflag == false && packetDec.BOS == false {
+						fmt.Fprintf(os.Stderr, "BOS flag not set on packet!\n")
 						os.Exit(1)
 					}
-					if bosflag && packetDec.BOS != 0 {
-						fmt.Fprintf(os.Stderr, "b_o_s flag incorrectly set on packet!\n")
+					if bosflag && packetDec.BOS != false {
+						fmt.Fprintf(os.Stderr, "BOS flag incorrectly set on packet!\n")
 						os.Exit(1)
 					}
 					bosflag = true
@@ -603,7 +603,7 @@ func test_pack(pl []int32, headers [][]byte, byteskip, pageskip, packetskip int)
 						os.Exit(1)
 					}
 
-					if packetDec.EOS != 0 {
+					if packetDec.EOS != false {
 						eosflag = true
 					}
 
@@ -786,9 +786,9 @@ func TestFraming(t *testing.T) {
 
 			op.Packet = data[inptr : inptr+length]
 			if pl[i+1] < 0 {
-				op.EOS = 1
+				op.EOS = true
 			} else {
-				op.EOS = 0
+				op.EOS = false
 			}
 			op.GranulePos = int64((i + 1) * 1000)
 

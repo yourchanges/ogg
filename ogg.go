@@ -26,9 +26,8 @@ type StreamState struct {
 	BodyReturned int32   // elements of fill returned
 	LacingVals   []int32 // The values that will go to the segment table
 
-	// granulepos values for headers. Not compact this way, 
-	// but it is simple coupled to the lacing fifo
-	GranuleVals    []int64
+	// granulepos values for headers.
+	GranuleVals    []int64 
 	LacingFill     int32
 	LacingPacket   int32
 	LacingReturned int32
@@ -37,29 +36,28 @@ type StreamState struct {
 	Header     [282]byte
 	HeaderFill int32
 
-	EOS      bool // set when we have buffered the last packet in the logical bitstream
-	BOS      bool // set after we've written the initial page of a logical bitstream
+	EOS      bool // set when the last packet is buffered in the logical bitstream
+	BOS      bool // set after writing the initial page of a logical bitstream
 	SerialNo int32
 	PageNo   int32
 
-	// sequence number for decode; the framing knows where there's a hole
-	// in the data, but we need coupling so that the codec (which is in a 
-	// separate abstraction layer) also knows about the gap
+	// sequence number for decode
 	PacketNo   int64
 	GranulePos int64
 }
 
-// packet is used to encapsulate the data and metadata belonging
-// to a single raw Ogg/Vorbis packet
+// Packet is used to encapsulate the data and metadata belonging
+// to a single raw Ogg/Vorbis packet.
 type Packet struct {
 	Packet []byte
-	BOS    int32
-	EOS    int32
+	BOS    bool
+	EOS    bool
 
 	GranulePos int64
 	PacketNo   int64
 }
 
+// SyncState tracks the synchronization of the current page.
 type SyncState struct {
 	Data        []byte
 	Fill        int32
@@ -76,8 +74,6 @@ func printf(s string, a ...interface{}) {
 		fmt.Printf(s, a)
 	}
 }
-
-// A complete description of Ogg framing exists in docs/framing.html 
 
 func (og *Page) Version() byte {
 	return og.Header[4]
@@ -133,27 +129,24 @@ func (og *Page) PageNo() int32 {
 // NOTE:
 // If a page consists of a packet begun on a previous page, and a new
 // packet begun (but not completed) on this page, the return will be:
-//   Page.Packets()   ==1,
-//   Page.Continued() !=0
+//   Page.Packets() == 1
+//   Page.Continued() != 0
 //
 // If a page happens to be a single packet that was begun on a
 // previous page, and spans to the next page (in the case of a three or
 // more page packet), the return will be:
-//   Page.Packets()   ==0,
-//   Page.Continued() !=0
-func (og *Page) Packets() int {
-	var count int
-
-	n := int(og.Header[26])
-	for i := 0; i < n; i++ {
+//   Page.Packets() == 0
+//   Page.Continued() != 0
+func (og *Page) Packets() (count int) {
+	for i := 0; i < int(og.Header[26]); i++ {
 		if og.Header[27+i] < 255 {
 			count++
 		}
 	}
-	return count
+	return
 }
 
-var crc_lookup = []uint32{
+var crcLookup = []uint32{
 	0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,
 	0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,
 	0x2608edb8, 0x22c9f00f, 0x2f8ad6d6, 0x2b4bcb61,
@@ -220,20 +213,15 @@ var crc_lookup = []uint32{
 	0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4}
 
 // Init the encode/decode logical stream state
-func (ot *StreamState) Init(serialNo int32) int {
-	if ot != nil {
-		BodyStorage := 16 * 1024
-		LacingStorage := 1024
+func (ot *StreamState) Init(serialNo int32) {
+	BodyStorage := 16 * 1024
+	LacingStorage := 1024
 
-		ot.BodyData = make([]byte, BodyStorage)
-		ot.LacingVals = make([]int32, LacingStorage)
-		ot.GranuleVals = make([]int64, LacingStorage)
+	ot.BodyData = make([]byte, BodyStorage)
+	ot.LacingVals = make([]int32, LacingStorage)
+	ot.GranuleVals = make([]int64, LacingStorage)
 
-		ot.SerialNo = serialNo
-
-		return 0
-	}
-	return -1
+	ot.SerialNo = serialNo
 }
 
 // Check async/delayed error detection for the StreamState
@@ -245,12 +233,11 @@ func (ot *StreamState) Check() bool {
 }
 
 // Clear does not free ot, only the non-flat storage within
-func (ot *StreamState) Clear() int {
+func (ot *StreamState) Clear() {
 	ot = nil
-	return 0
 }
 
-// Helpers for Stream_encode; this keeps the structure and
+// Helpers for encode; this keeps the structure and
 // what's happening fairly clear
 func (ot *StreamState) bodyExpand(needed int) {
 	if len(ot.BodyData) <= int(ot.BodyFill)+needed {
@@ -279,10 +266,10 @@ func (og *Page) ChecksumSet() {
 		og.Header[25] = 0
 
 		for i := range og.Header {
-			crc_reg = (crc_reg << 8) ^ crc_lookup[((crc_reg>>24)&0xff)^uint32(og.Header[i])]
+			crc_reg = (crc_reg << 8) ^ crcLookup[((crc_reg>>24)&0xff)^uint32(og.Header[i])]
 		}
 		for i := range og.Body {
-			crc_reg = (crc_reg << 8) ^ crc_lookup[((crc_reg>>24)&0xff)^uint32(og.Body[i])]
+			crc_reg = (crc_reg << 8) ^ crcLookup[((crc_reg>>24)&0xff)^uint32(og.Body[i])]
 		}
 
 		og.Header[22] = byte(crc_reg) & 0xff
@@ -293,7 +280,7 @@ func (og *Page) ChecksumSet() {
 }
 
 // IovecIn submit data to the internal buffer of the framing engine
-func (ot *StreamState) IovecIn(iov [][]byte, count int, EOS int32, granulepos int64) error {
+func (ot *StreamState) IovecIn(iov [][]byte, count int, EOS bool, granulepos int64) error {
 	var Bytes, lacing_vals, i int
 
 	if ot.Check() == false {
@@ -350,7 +337,7 @@ func (ot *StreamState) IovecIn(iov [][]byte, count int, EOS int32, granulepos in
 	// for the sake of completeness 
 	ot.PacketNo++
 
-	if EOS != 0 {
+	if EOS == true {
 		ot.EOS = true
 	}
 
@@ -361,9 +348,9 @@ func (ot *StreamState) PacketIn(op *Packet) error {
 	return ot.IovecIn([][]byte{op.Packet}, 1, op.EOS, op.GranulePos)
 }
 
-// Conditionally flush a page; force==0 will only flush nominal-size
-// pages, force==1 forces us to flush a page regardless of page size
-// so long as there's any data available at all.
+// Conditionally flush a page; force == false will only flush nominal size
+// pages, force == true forces us to flush a page regardless of page size
+// as long as there's any data available at all.
 func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	var bodyBytes int32
 	var i, acc, vals, maxvals int32
@@ -468,10 +455,11 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 	// 32 bits of page counter (we have both counter and page header
 	// because this val can roll over) 
 	if ot.PageNo == -1 {
+		// because someone called Reset; this would be a
+		// strange thing to do in an encode stream, but it has
+		// plausible uses 
 		ot.PageNo = 0
-	} // because someone called stream_reset; this would be a
-	// strange thing to do in an encode stream, but it has
-	// plausible uses 
+	}
 
 	pageno := ot.PageNo
 	ot.PageNo++
@@ -515,10 +503,10 @@ func (ot *StreamState) flushI(og *Page, force bool, nfill int) int {
 // Flush will flush remaining packets into a page (returning nonzero),
 // even if there is not enough data to trigger a flush normally
 // (undersized page). If there are no packets or partial packets to
-// flush, Stream_flush returns 0.  Note that Stream_flush will
+// flush, Flush returns 0.  Note that Flush will
 // try to flush a normal sized page like Pageout; a call to
 // Flush does not guarantee that all packets have flushed.
-// Only a return value of 0 from Stream_flush indicates all packet
+// Only a return value of 0 from Flush indicates all packet
 // data is flushed into pages.
 //
 // Since Flush will flush the last page in a stream even if
@@ -583,15 +571,14 @@ func (ot *StreamState) Eos() bool {
 // This has two layers to place more of the multi-serialno and paging
 // control in the application's hands.  First, we expose a data buffer
 // using Buffer().  The app either copies into the
-// buffer, or passes it directly to read(), etc.  We then call
-// Wrote() to tell how many_bytes we just added.
+// buffer, or passes it directly to Read(), etc.  We then call
+// Wrote() to tell how many bytes we just added.
 //
 // Pages are returned (pointers into the buffer in SyncState)
-// by Sync_pageout().  The page is then submitted to
+// by PageOut().  The page is then submitted to
 // PageIn() along with the appropriate
-// StreamState* (ie, matching serialno).  We then get raw
-// packets out calling Stream_packetout() with a
-// StreamState. 
+// StreamState* (ie, matching serialno). We then get raw
+// packets out calling PacketOut().
 
 // Clear non-flat storage within
 func (oy *SyncState) Clear() int {
@@ -634,18 +621,15 @@ func (oy *SyncState) Wrote(Bytes int) int {
 	return 0
 }
 
-// PageSeek sync the stream. This is meant to be useful for finding page
-// boundaries.
-//
-// return values for this:
-//  -n) skipped n_bytes
-//  0) page not ready; more data (no_bytes skipped)
-//  n) page synced at current location; page length n_bytes
+// PageSeek syncs the stream. Useful for finding page boundaries.
+// Return values for this:
+//  -n) skipped n bytes
+//  0) page not ready; more data (no bytes skipped)
+//  n) page synced at current location; page length n bytes
 func (oy *SyncState) PageSeek(og *Page) int32 {
 	page := oy.Data[oy.Returned:oy.Fill]
 	Bytes := len(page)
 
-	printf("oy.Data = %v ", page[:4])
 	if oy.HeaderBytes == 0 {
 		var headerbytes int
 		if Bytes < 27 { // not enough for a header
@@ -658,7 +642,8 @@ func (oy *SyncState) PageSeek(og *Page) int32 {
 		}
 
 		headerbytes = int(page[26]) + 27
-		if Bytes < headerbytes { // not enough for header + seg table
+		if Bytes < headerbytes { 
+			// not enough for header + seg table
 			return 0
 		}
 
@@ -677,10 +662,10 @@ func (oy *SyncState) PageSeek(og *Page) int32 {
 	// The whole test page is buffered.  Verify the checksum
 	{
 		// Grab the checksum_bytes, set the header field to zero
-		var chksum [4]byte
+		chksum := make([]byte, 4)
 		var log Page
 
-		copy(chksum[0:], page[22:22+4])
+		copy(chksum, page[22:22+4])
 		page[22] = 0
 		page[23] = 0
 		page[24] = 0
@@ -692,10 +677,10 @@ func (oy *SyncState) PageSeek(og *Page) int32 {
 		log.ChecksumSet()
 
 		// Compare 
-		if bytes.Equal(chksum[0:4], page[22:26]) == false {
+		if bytes.Equal(chksum, page[22:26]) == false {
 			// D'oh. Mismatch! Corrupt page (or miscapture and not a page at all)
 			// replace the computed checksum with the one actually read in
-			copy(page[22:], chksum[0:4])
+			copy(page[22:], chksum)
 
 			// Bad checksum. Lose sync
 			goto sync_fail
@@ -737,15 +722,12 @@ sync_fail:
 
 // sync the stream and get a page.  Keep trying until we find a page.
 // Suppress 'sync errors' after reporting the first.
-//
 // return values:
 //  -1) recapture (hole in data)
 //  0) need more data
 //  1) page returned
-//
 // Returns pointers into buffered data; invalidated by next call to
-// _stream, _clear, _init, or _buffer
-//
+// Clear(), Init(), or Buffer()
 func (oy *SyncState) PageOut(og *Page) int {
 
 	// all we need to do is verify a page at the head of the stream
@@ -984,8 +966,8 @@ func (ot *StreamState) packetOut(op *Packet, adv bool) int {
 	{
 		size := int(ot.LacingVals[ptr] & 0xff)
 		Bytes := size
-		eos := int(ot.LacingVals[ptr] & 0x200) // last packet of the stream?
-		bos := int(ot.LacingVals[ptr] & 0x100) // first packet of the stream?
+		eos := ot.LacingVals[ptr] & 0x200 // last packet of the stream?
+		bos := ot.LacingVals[ptr] & 0x100 // first packet of the stream?
 
 		for size == 255 {
 			ptr++
@@ -998,8 +980,8 @@ func (ot *StreamState) packetOut(op *Packet, adv bool) int {
 		}
 
 		if op != nil {
-			op.EOS = int32(eos)
-			op.BOS = int32(bos)
+			op.EOS = (eos != 0)
+			op.BOS = (bos != 0)
 			op.Packet = ot.BodyData[ot.BodyReturned : ot.BodyReturned+int32(Bytes)]
 			op.PacketNo = ot.PacketNo
 			op.GranulePos = ot.GranuleVals[ptr]
